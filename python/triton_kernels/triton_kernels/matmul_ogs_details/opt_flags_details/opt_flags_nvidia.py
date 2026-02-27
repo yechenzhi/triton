@@ -65,7 +65,9 @@ def compute_num_warps(block_m, block_n, is_persistent: bool, precision_config):
     layout = get_layout(precision_config.weight_scale)
     if isinstance(layout, HopperMXScaleLayout):
         return layout.num_warps
-    return max(block_m * block_n // 4096, 4 if is_persistent else 1)
+    # Keep non-persistent kernels from defaulting to 1 warp on consumer GPUs;
+    # this can severely underutilize SMs for MoE MXFP4 matmuls.
+    return max(block_m * block_n // 4096, 4)
 
 
 def compute_num_stages(
